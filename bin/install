@@ -96,7 +96,9 @@ downloaded_file_path() {
 download_url() {
   local version=$1
   IFS='.' read -r major minor patch <<< "$version"
-  if ((major > 0)) || ((major == 0 && minor >= 12)) ; then
+  if ((major > 0)) || ((major == 0 && minor == 12 && patch > 12)) ; then
+    echo "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${version}/mill-dist-${version}.exe"
+  elif ((minor >= 12)) ; then
     echo "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${version}/mill-dist-${version}-assembly.jar"
   else
     echo "https://github.com/com-lihaoyi/mill/releases/download/${version}/${version}"
