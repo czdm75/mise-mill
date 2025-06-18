@@ -65,18 +65,18 @@ install_version() {
     archive_url=$(download_url $version)
     download $archive_file $archive_url || fail "could not download mill archive"
     mkdir -p $install_path/bin
-    ( "#!/usr/bin/env sh" && cat $archive_file) > $install_path/bin/mill
+    (echo "#!/usr/bin/env sh" && cat $archive_file) > $install_path/bin/mill
     chmod +x $install_path/bin/mill
 
     rm -rf $tmp_download_dir
 
   ) || (rm -rf $install_path $tmp_download_dir; exit 1)
 
-   $tmp_download_dir
+   echo $tmp_download_dir
 }
 
 fail() {
-     "asdf-mill error:" $*
+    echo "asdf-mill error:" $*
     exit 1
 }
 
@@ -90,7 +90,7 @@ downloaded_file_path() {
   local version=$1
   local tmp_download_dir=$2
   local pkg_name="mill-${version}"
-   "$tmp_download_dir/$pkg_name"
+  echo "$tmp_download_dir/$pkg_name"
 }
 
 download_url() {
