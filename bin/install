@@ -72,7 +72,7 @@ install_version() {
 
   ) || (rm -rf $install_path $tmp_download_dir; exit 1)
 
- echo $tmp_download_dir
+  echo $tmp_download_dir
 }
 
 fail() {
