@@ -65,18 +65,18 @@ install_version() {
     archive_url=$(download_url $version)
     download $archive_file $archive_url || fail "could not download mill archive"
     mkdir -p $install_path/bin
-    (echo "#!/usr/bin/env sh" && cat $archive_file) > $install_path/bin/mill
+    ( "#!/usr/bin/env sh" && cat $archive_file) > $install_path/bin/mill
     chmod +x $install_path/bin/mill
 
     rm -rf $tmp_download_dir
 
   ) || (rm -rf $install_path $tmp_download_dir; exit 1)
 
-  echo $tmp_download_dir
+   $tmp_download_dir
 }
 
 fail() {
-    echo "asdf-mill error:" $*
+     "asdf-mill error:" $*
     exit 1
 }
 
@@ -90,12 +90,17 @@ downloaded_file_path() {
   local version=$1
   local tmp_download_dir=$2
   local pkg_name="mill-${version}"
-  echo "$tmp_download_dir/$pkg_name"
+   "$tmp_download_dir/$pkg_name"
 }
 
 download_url() {
   local version=$1
-  echo "https://github.com/com-lihaoyi/mill/releases/download/${version}/${version}"
+  IFS='.' read -r major minor patch <<< "$version"
+  if ((major > 0)) || ((major == 0 && minor >= 12)) ; then
+    echo "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${version}/mill-dist-${version}-assembly.jar"
+  else
+    echo "https://github.com/com-lihaoyi/mill/releases/download/${version}/${version}"
+  fi
 }
 
 installer $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
