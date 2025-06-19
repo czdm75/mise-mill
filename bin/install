@@ -65,7 +65,7 @@ install_version() {
     archive_url=$(download_url $version)
     download $archive_file $archive_url || fail "could not download mill archive"
     mkdir -p $install_path/bin
-    (echo "#!/usr/bin/env sh" && cat $archive_file) > $install_path/bin/mill
+    cp $archive_file $install_path/bin/mill
     chmod +x $install_path/bin/mill
 
     rm -rf $tmp_download_dir
