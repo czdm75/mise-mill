@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 
-releases_path=https://api.github.com/repos/com-lihaoyi/mill/releases
-cmd="curl -s"
-if [ -n "$GITHUB_API_TOKEN" ]; then
- cmd="$cmd -H 'Authorization: token $GITHUB_API_TOKEN'"
-fi
-
-cmd="$cmd $releases_path"
+set -eo pipefail
 
 # stolen from https://github.com/rbenv/ruby-build/pull/631/files#diff-fdcfb8a18714b33b07529b7d02b54f1dR942
 function sort_versions() {
@@ -14,6 +8,36 @@ function sort_versions() {
         LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
 }
 
-# Fetch all tag names, and get only second column. Then remove all unnecesary characters.
-versions=$(eval $cmd | grep -oE "tag_name\": \".{1,15}\"," | sed 's/tag_name\": \"//;s/\",//' | sort_versions)
-echo $versions
+# Function to duplicate versions above 0.12.6 with "-native" suffix
+function add_native_versions() {
+    while read -r version; do
+        echo "$version"
+        # Check if version is greater than 0.12.6
+        if printf '%s\n%s\n' "0.12.6" "$version" | sort -V | tail -n1 | grep -q "^$version$" && [ "$version" != "0.12.6" ]; then
+            echo "$version-native"
+        fi
+    done
+}
+
+# mill releases have too many assets, making the response very large (10MB+)
+# check is there's release for each tag can also be slow
+# here we skip checking release, just take any numeric tag as version. not perfect, but works.
+function get_releases() {
+  cmd="curl -s"
+  if [ -n "$GITHUB_API_TOKEN" ]; then
+   cmd="$cmd -H 'Authorization: token $GITHUB_API_TOKEN'"
+  fi
+
+  response=$(mktemp)
+  status=$($cmd -w "%{http_code}" -o $response https://api.github.com/repos/com-lihaoyi/mill/tags)
+
+  if [[ $status -ge 400 ]]; then
+    rm $response
+    exit 1
+  else
+    grep -oE "name\": \"\d.{1,15}\"," $response | sed 's/name\": \"//;s/\",//'
+    rm $response
+  fi
+}
+
+get_releases | sort_versions | add_native_versions

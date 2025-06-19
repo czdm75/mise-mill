@@ -93,15 +93,70 @@ downloaded_file_path() {
   echo "$tmp_download_dir/$pkg_name"
 }
 
+set_artifact_suffix(){
+  if [ "$(expr substr $(uname -s) 1 5 2>/dev/null)" = "Linux" ]; then
+    if [ "$(uname -m)" = "aarch64" ]; then
+      ARTIFACT_SUFFIX="-native-linux-aarch64"
+    else
+      ARTIFACT_SUFFIX="-native-linux-amd64"
+    fi
+  elif [ "$(uname)" = "Darwin" ]; then
+    if [ "$(uname -m)" = "arm64" ]; then
+      ARTIFACT_SUFFIX="-native-mac-aarch64"
+    else
+      ARTIFACT_SUFFIX="-native-mac-amd64"
+    fi
+  else
+     echo "This native mill launcher supports only Linux and macOS." 1>&2
+     exit 1
+  fi
+}
+
 download_url() {
   local version=$1
-  IFS='.' read -r major minor patch <<< "$version"
-  if ((major > 0)) || ((major == 0 && minor == 12 && patch > 12)) ; then
-    echo "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${version}/mill-dist-${version}.exe"
-  elif ((minor >= 12)) ; then
-    echo "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${version}/mill-dist-${version}-assembly.jar"
+  case $version in
+    *-native )
+      set_artifact_suffix
+      MILL_VERSION=${version%-native}
+    ;;
+    * )
+      MILL_VERSION=$version
+  esac
+
+  case $MILL_VERSION in
+    0.0.* | 0.1.* | 0.2.* | 0.3.* | 0.4.* )
+      DOWNLOAD_SUFFIX=""
+      DOWNLOAD_FROM_MAVEN=0
+      ;;
+    0.5.* | 0.6.* | 0.7.* | 0.8.* | 0.9.* | 0.10.* | 0.11.0-M* )
+      DOWNLOAD_SUFFIX="-assembly"
+      DOWNLOAD_FROM_MAVEN=0
+      ;;
+    *)
+      DOWNLOAD_SUFFIX="-assembly"
+      DOWNLOAD_FROM_MAVEN=1
+      ;;
+  esac
+  case $MILL_VERSION in
+    0.12.0 | 0.12.1 | 0.12.2 | 0.12.3 | 0.12.4 | 0.12.5 | 0.12.6 | 0.12.7 | 0.12.8 | 0.12.9 | 0.12.10 | 0.12.11 )
+      DOWNLOAD_EXT="jar"
+      ;;
+    0.12.* )
+      DOWNLOAD_EXT="exe"
+      ;;
+    0.* )
+      DOWNLOAD_EXT="jar"
+      ;;
+    *)
+      DOWNLOAD_EXT="exe"
+      ;;
+  esac
+
+  if [ "$DOWNLOAD_FROM_MAVEN" = "1" ] ; then
+    echo "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist${ARTIFACT_SUFFIX}/${MILL_VERSION}/mill-dist${ARTIFACT_SUFFIX}-${MILL_VERSION}.${DOWNLOAD_EXT}"
   else
-    echo "https://github.com/com-lihaoyi/mill/releases/download/${version}/${version}"
+    local MILL_VERSION_TAG=$(echo "$MILL_VERSION" | sed -E 's/([^-]+)(-M[0-9]+)?(-.*)?/\1\2/')
+    echo "https://github.com/com-lihaoyi/mill/releases/download/${MILL_VERSION_TAG}/${MILL_VERSION}${DOWNLOAD_SUFFIX}"
   fi
 }
 
