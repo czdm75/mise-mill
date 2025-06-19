@@ -25,13 +25,15 @@ function add_native_versions() {
 function get_releases() {
   cmd="curl -s"
   if [ -n "$GITHUB_API_TOKEN" ]; then
-   cmd="$cmd -H 'Authorization: token $GITHUB_API_TOKEN'"
+    echo "Using Github API token" >&2
+    cmd="$cmd -H 'Authorization: Bearer $GITHUB_API_TOKEN'"
   fi
 
   response=$(mktemp)
-  status=$($cmd -w "%{http_code}" -o $response https://api.github.com/repos/com-lihaoyi/mill/tags)
+  status=$(eval $cmd -w "%{http_code}" -o $response https://api.github.com/repos/com-lihaoyi/mill/tags)
 
   if [[ $status -ge 400 ]]; then
+    echo "4xx response from github api, consider set GITHUB_API_TOKEN" >&2
     rm $response
     exit 1
   else
